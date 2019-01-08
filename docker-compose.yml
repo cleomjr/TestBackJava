@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  docker-redis:
+    image: redis:latest
+
+  testbackjava:
+    image: testbackjava
+    depends_on:
+    - docker-redis
+    links:
+    - localhost:docker-redis #TODO add new property for redis server
+    ports:
+    - 8090:8090
+    environment:
+    - DATABASE_HOST=docker-redis
