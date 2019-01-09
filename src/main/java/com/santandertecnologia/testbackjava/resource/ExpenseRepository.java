@@ -11,5 +11,5 @@ public interface ExpenseRepository extends CrudRepository<Expense, String>, Quer
 
     List<Expense> findAllByCategory(String category);
     List<Expense> findAllByDescription(String description);
-    List<Expense> findAllByDateTimeBetween(Long fromDate, Long toDate);
+    List<Expense> findAllByDateGreaterThanAndDateLessThan(Long fromDate, Long toDate);
 }

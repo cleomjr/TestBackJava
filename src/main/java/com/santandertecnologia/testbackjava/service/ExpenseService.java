@@ -59,7 +59,21 @@ public class ExpenseService {
     }
 
     public List<Expense> getExpensesByPeriod(String fromDate, String toDate) {
-        return expenseRepository.findAllByDateTimeBetween(Expense.convertStringToMillis(fromDate), Expense.convertStringToMillis(toDate));
+        // java.lang.IllegalArgumentException: GREATER_THAN (1): [IsGreaterThan, GreaterThan] is not supported for Redis query derivation!
+        // not sure if it is my Redis version... :(
+        //
+        // return expenseRepository.findAllByDateGreaterThanAndDateLessThan(Expense.convertStringToMillis(fromDate), Expense.convertStringToMillis(toDate));
+        List<Expense> expenses = new ArrayList<>();
+        Long from = Expense.convertStringToMillis(fromDate);
+        Long to = Expense.convertStringToMillis(toDate);
+
+        getAllExpenses().forEach(e -> {
+            if(e.getDate() >= from && e.getDate() <= to) {
+                expenses.add(e);
+            }
+        });
+
+        return expenses;
     }
 
     public void setExpense(Integer expenseId, Expense newExpenseData) {
