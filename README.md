@@ -55,7 +55,8 @@ O GET vai procurar somente valores *idênticos* ao parâmetro.
 - No arquivo `application.properties` é possível alterar algumas configurações da aplicação, como que porta ela deve ouvir.
 
 - Os testes criados com base nos requisitos descritos no enunciado do problema, [REQUIREMENTS.md](REQUIREMENTS.md), dependem do
-microserviço em execução. Portanto, inicie com `spring-boot:run` antes de executar os testes de API.
+microserviço em execução e de pelo menos um registro feito no banco. Portanto, inicie com `spring-boot:run` e se certifique
+de que há pelo menos um gasto antes de executar os testes de API.
  
 - Há um bug de cache do Redis, criado automaticamente pelo Spring Boot, que adiciona à chave do registro a ser mudado caracteres como 
 `\xac\xed\x00\x05t\x00\t`, criando um novo registro. A criação do cache manager foi feita 'manualmente' mas só isso não foi suficiente...
