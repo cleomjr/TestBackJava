@@ -9,7 +9,7 @@ services:
     depends_on:
     - docker-redis
     links:
-    - localhost:docker-redis #TODO add new property for redis server
+    - localhost:docker-redis
     ports:
     - 8090:8090
     environment:
