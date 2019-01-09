@@ -1,5 +1,6 @@
 package com.santandertecnologia.testbackjava.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.santandertecnologia.testbackjava.resource.Expense;
 import com.santandertecnologia.testbackjava.service.ExpenseService;
 import io.swagger.annotations.ApiOperation;
@@ -10,18 +11,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api")
 public class ExpenseApiController {
 
     public static final String CATEGORY_KEY = "category";
-    public static final String DATE_KEY = "date";
+    public static final String FROM_DATE_KEY = "fromDate";
+    public static final String TO_DATE_KEY = "toDate";
     public static final String DESCRIPTION_KEY = "description";
+    public static final String AUTHORIZATION_HEADER = "Authorization";
+    public static final String ID_PATH_VAR = "id";
     private ExpenseService expenseService;
 
     @Autowired
@@ -37,8 +42,9 @@ public class ExpenseApiController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public List<Expense> getExpenses (
-            @RequestHeader(value = "Authorization") String authorizationHeader,
-            @RequestParam(value = DATE_KEY, required = false) LocalDateTime date,
+            @RequestHeader(value = AUTHORIZATION_HEADER) String authorizationHeader,
+            @RequestParam(value = FROM_DATE_KEY, required = false) String fromDate,
+            @RequestParam(value = TO_DATE_KEY, required = false) String toDate,
             @RequestParam(value = DESCRIPTION_KEY, required = false) String description,
             HttpServletRequest request)  {
 
@@ -49,8 +55,8 @@ public class ExpenseApiController {
         List<Expense> expenseList = new ArrayList<>();
 
         if(request.isUserInRole(ApiSecurityConfig.ADMIN_ROLE)) {
-            if(date != null) {
-                expenseService.getExpensesByDate(date).forEach(expenseList::add);
+            if(fromDate != null && toDate != null) {
+                expenseService.getExpensesByPeriod(fromDate, toDate).forEach(expenseList::add);
 
             } else if(description != null) {
                 expenseService.getExpensesByDescription(description).forEach(expenseList::add);
@@ -72,7 +78,7 @@ public class ExpenseApiController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<?> createExpense(
-            @RequestHeader(value = "Authorization") String authorizationHeader,
+            @RequestHeader(value = AUTHORIZATION_HEADER) String authorizationHeader,
             @RequestBody Expense newExpenseData,
             HttpServletRequest request) {
 
@@ -95,10 +101,10 @@ public class ExpenseApiController {
             consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public void setExpense(
-            @RequestHeader(value = "Authorization") String authorizationHeader,
+            @RequestHeader(value = AUTHORIZATION_HEADER) String authorizationHeader,
             @RequestBody Expense newExpenseData,
-            @PathVariable Integer expenseId,
-            HttpServletRequest request) {
+            @PathVariable(value= ID_PATH_VAR) Integer expenseId,
+            HttpServletRequest request) throws InterruptedException, ExecutionException, JsonProcessingException {
 
         if(authorizationHeader == null || !request.isUserInRole(ApiSecurityConfig.ADMIN_ROLE)) {
             throw new ForbiddenException("Insufficient privileges for updating the expense");
@@ -114,20 +120,19 @@ public class ExpenseApiController {
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public List<String> getCategories (
-            @RequestHeader(value = "Authorization") String authorizationHeader,
-            @RequestParam(value = CATEGORY_KEY) Optional<String> category,
+    public Set<String> getCategories (
+            @RequestHeader(value = AUTHORIZATION_HEADER) String authorizationHeader,
+            @RequestParam(value = CATEGORY_KEY, required = false) String category,
             HttpServletRequest request)  {
 
         if(authorizationHeader == null || !request.isUserInRole(ApiSecurityConfig.ADMIN_ROLE)) {
             throw new ForbiddenException("The provided authentication is invalid");
         }
 
-        List<String> categoryList = new ArrayList<>();
+        Set<String> categoryList = new HashSet<>();
 
-        if(category.isPresent()) {
-            expenseService.getExpensesByCategory(category.get())
-                    .forEach(e -> categoryList.add(e.getCategory()));
+        if(category != null) {
+            categoryList = expenseService.getCategories(category);
         }
 
         return categoryList;

@@ -1,15 +1,15 @@
 package com.santandertecnologia.testbackjava.resource;
 
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.QueryByExampleExecutor;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
-public interface ExpenseRepository extends CrudRepository<Expense, String> {
+public interface ExpenseRepository extends CrudRepository<Expense, String>, QueryByExampleExecutor<Expense> {
 
-    Iterable<Expense> findByCategoryIgnoreCase(String category);
-    Iterable<Expense> findByDescriptionIgnoreCase(String description);
-    Iterable<Expense> findByDate(LocalDateTime date);
-
+    List<Expense> findAllByCategory(String category);
+    List<Expense> findAllByDescription(String description);
+    List<Expense> findAllByDateTimeBetween(Long fromDate, Long toDate);
 }

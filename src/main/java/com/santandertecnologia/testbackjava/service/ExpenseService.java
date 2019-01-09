@@ -3,46 +3,69 @@ package com.santandertecnologia.testbackjava.service;
 import com.santandertecnologia.testbackjava.resource.Expense;
 import com.santandertecnologia.testbackjava.resource.ExpenseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class ExpenseService {
+    public static final int MINIMUM_LENGTH = 3;
     private ExpenseRepository expenseRepository;
+    private RedisTemplate<String, Expense> expenseRedisTemplate;
 
     @Autowired
-    public ExpenseService(ExpenseRepository expenseRepository) {
+    public ExpenseService(ExpenseRepository expenseRepository, RedisTemplate<String, Expense> expenseRedisTemplate) {
         this.expenseRepository = expenseRepository;
+        this.expenseRedisTemplate = expenseRedisTemplate;
     }
 
     public Expense createExpense(Expense expense) {
-        // Usually the method would sanitize the data before persisting
+        // Usually it is recommended sanitize the data before persisting, in order to avoid XSS injections
         //
         // Expense expense = new Expense();
         // expense.setCategory(sanitize(receivedExpense.getCategory()));
         // ...
-        return expenseRepository.save(expense);
+        Expense persistedExpense = new Expense(
+                expenseRepository.count(),
+                expense.getDescription(),
+                expense.getValue(),
+                expense.getUserCode(),
+                expense.getDate(),
+                expense.getCategory());
+
+        return expenseRepository.save(persistedExpense);
     }
 
     public Iterable<Expense> getAllExpenses() {
         return expenseRepository.findAll();
     }
 
-    public Iterable<Expense> getExpensesByCategory(String category) {
-        return expenseRepository.findByCategoryIgnoreCase(category);
+    public Set<String> getCategories(String category) {
+        Iterable<Expense> expenses = getAllExpenses();
+        Set<String> categories = new HashSet<>();
+        if(category.length() >= MINIMUM_LENGTH) {
+            getAllExpenses().forEach(e -> {
+                if(e.getCategory().contains(category)) {
+                    categories.add(e.getCategory());
+                }
+            });
+        }
+        return categories;
     }
 
-    public Iterable<Expense> getExpensesByDescription(String description) {
-        return expenseRepository.findByDescriptionIgnoreCase(description);
+    public List<Expense> getExpensesByDescription(String description) {
+        return expenseRepository.findAllByDescription(description);
     }
 
-    public Iterable<Expense> getExpensesByDate(LocalDateTime localDateTime) {
-        return expenseRepository.findByDate(localDateTime);
+    public List<Expense> getExpensesByPeriod(String fromDate, String toDate) {
+        return expenseRepository.findAllByDateTimeBetween(Expense.convertStringToMillis(fromDate), Expense.convertStringToMillis(toDate));
     }
 
     public void setExpense(Integer expenseId, Expense newExpenseData) {
+        StringBuffer expenseKey = new StringBuffer();
+        expenseKey.append(Expense.class.getSimpleName()).append(":").append(expenseId.toString());
+
         Optional<Expense> expense = expenseRepository.findById(expenseId.toString());
 
         if(expense.isPresent()) {
@@ -66,7 +89,10 @@ public class ExpenseService {
                 expense.get().setValue(newExpenseData.getValue());
             }
 
-            expenseRepository.save(expense.get());
+            expenseRedisTemplate.opsForValue().set(expenseKey.toString(), expense.get());
+
+        } else {
+            throw new NoSuchElementException();
         }
     }
 
