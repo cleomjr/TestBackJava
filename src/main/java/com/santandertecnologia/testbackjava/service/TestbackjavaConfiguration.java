@@ -7,6 +7,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
@@ -20,6 +21,8 @@ import springfox.documentation.service.ApiInfo;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
+import java.time.Duration;
 
 @Configuration
 @EnableSwagger2
@@ -69,6 +72,11 @@ public class TestbackjavaConfiguration {
     public CacheManager initRedisCacheManager(RedisConnectionFactory factory) {
         RedisCacheManager.RedisCacheManagerBuilder builder = RedisCacheManager
                 .RedisCacheManagerBuilder.fromConnectionFactory(factory);
+
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig();
+        config.entryTtl(Duration.ofSeconds(0));
+        builder.cacheDefaults(config);
+
         return builder.build();
     }
 
